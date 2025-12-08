@@ -149,9 +149,9 @@ impl Grid {
         let mut dp: Vec<Vec<u64>> = vec![vec![0; cols]; rows];
 
         // Base case: bottom row - each position has exactly 1 path (stay there)
-        for col in 0..cols {
+        (0..cols).for_each(|col| {
             dp[rows - 1][col] = 1;
-        }
+        });
 
         // Work backwards from second-to-last row to top
         for row in (0..rows - 1).rev() {
