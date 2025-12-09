@@ -85,11 +85,15 @@ impl FloorPlan {
         let min_y = a.y.min(b.y);
         let max_y = a.y.max(b.y);
 
-        // The other two corners of the rectangle
+        //   (min_x, max_y) -------- (max_x, max_y)
+        //         |                       |
+        //         |                       |
+        //   (min_x, min_y) -------- (max_x, min_y)
         let c = Point::new(min_x, max_y);
         let d = Point::new(max_x, min_y);
 
-        // All 4 corners must be inside or on the polygon
+        // All 4 corners must be inside or on the polygon -- a and b vertices so by definition on
+        // an edge.
         if !Self::point_inside_or_on_polygon(&c, polygon) {
             return false;
         }
@@ -97,10 +101,27 @@ impl FloorPlan {
             return false;
         }
 
-        // No polygon edge can cross through the rectangle's interior
+        // No polygon edge can cross through the rectangle's interiora
         !Self::polygon_edge_crosses_rect_interior(polygon, min_x, max_x, min_y, max_y)
     }
 
+    // Ray casting algorithm for point-in-polygon test adapted for axis-aligned polygons
+    //
+    // For a point we try to find either that:
+    // - the point is exactly on a polygon edge (then it's inside or on)
+    // - or we count how many times a ray to +∞ crosses polygon edges
+    //
+    //                        │             │
+    //           outside      │   inside    │      outside
+    //                        │             │
+    //       • ──────────────►│────────────►│──────────────► (2 crossings = even = outside)
+    //                        │             │
+    //                        │  • ────────►│──────────────► (1 crossing = odd = inside)
+    //                        │             │
+    //                        │             │  • ──────────► (0 crossings = even = outside)
+    //                        │             │
+    //                        └─────────────┘
+    //
     fn point_inside_or_on_polygon(point: &Point, polygon: &[Point]) -> bool {
         let n = polygon.len();
         let (px, py) = (point.x, point.y);
@@ -116,7 +137,22 @@ impl FloorPlan {
                 if px == xi && py >= yi.min(yj) && py <= yi.max(yj) {
                     return true;
                 }
+
                 // Ray casting: vertical edge crosses horizontal ray
+                //         y
+                //         ↑
+                //         │
+                //      yi ┼──────────────●───────────  (xi, yi)
+                //         │              │
+                //         │              │
+                //      py ┼───●──────────┼──────────────────► ray to +∞
+                //         │  (px,py)     │─────────────
+                //         │              │ vertical edge
+                //         │              │
+                //      yj ┼──────────────●───────────  (xi, yj)
+                //         │              │
+                //         └──────────────┼─────────────────► x
+                //                       xi
                 if (yi > py) != (yj > py) && px < xi {
                     inside = !inside;
                 }
@@ -131,6 +167,12 @@ impl FloorPlan {
         inside
     }
 
+    // all corners could be inside, but an edge could still cross the rectangle's interior:
+    //       a●━━━━━━━━━━━━━━●c
+    //        ┃              ┃
+    //        ┃    ┌────┐    ┃  ← edge cuts through interio
+    //        ┃    │    │    ┃
+    //       d●━━━━┘    └━━━━●b
     fn polygon_edge_crosses_rect_interior(
         polygon: &[Point],
         min_x: i32,
