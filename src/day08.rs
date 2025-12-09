@@ -5,10 +5,15 @@ use std::str::FromStr;
 
 use indexmap::IndexMap;
 
+// Fixes
+// * The IndexMap and sorting by x-coordinate were used earlier for a threshold-based approach.
+//   This dependency is no longer needed, so the sorting step and IndexMap usage can be removed.
+
+
 pub fn solve_problem_1(main_file: &str) -> std::io::Result<()> {
     let input = std::fs::read_to_string(main_file)?;
 
-    let mut system: LighingSystem = input.parse().map_err(|e| {
+    let mut system: LighteningSystem = input.parse().map_err(|e| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             format!("Parse error: {}", e),
@@ -31,7 +36,7 @@ pub fn solve_problem_1(main_file: &str) -> std::io::Result<()> {
 pub fn solve_problem_2(main_file: &str) -> std::io::Result<()> {
     let input = std::fs::read_to_string(main_file)?;
 
-    let mut system: LighingSystem = input.parse().map_err(|e| {
+    let mut system: LighteningSystem = input.parse().map_err(|e| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             format!("Parse error: {}", e),
@@ -66,11 +71,11 @@ impl Point3D {
     }
 }
 
-struct LighingSystem {
+struct LighteningSystem {
     circuits: IndexMap<Point3D, Rc<RefCell<HashSet<Point3D>>>>,
 }
 
-impl FromStr for LighingSystem {
+impl FromStr for LighteningSystem {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -101,11 +106,11 @@ impl FromStr for LighingSystem {
         for point in points {
             circuits.insert(point, Rc::new(RefCell::new(HashSet::from([point]))));
         }
-        Ok(LighingSystem { circuits })
+        Ok(LighteningSystem { circuits })
     }
 }
 
-impl LighingSystem {
+impl LighteningSystem {
     fn unique_circuits(&self) -> impl Iterator<Item = Rc<RefCell<HashSet<Point3D>>>> + '_ {
         let mut seen = HashSet::new();
         self.circuits
@@ -226,7 +231,7 @@ mod tests {
 
     #[test]
     fn test_sample_problem_1() {
-        let mut system: LighingSystem = TEST_INPUT.parse().unwrap();
+        let mut system: LighteningSystem = TEST_INPUT.parse().unwrap();
         let connections_made = system.connect_junctions_n(10);
         assert_eq!(connections_made, 10);
 
@@ -248,7 +253,7 @@ mod tests {
 
     #[test]
     fn test_sample_problem_2() {
-        let mut system: LighingSystem = TEST_INPUT.parse().unwrap();
+        let mut system: LighteningSystem = TEST_INPUT.parse().unwrap();
 
         if let Some((a, b)) = system.connect_into_single_circuit() {
             let result = a.x * b.x;

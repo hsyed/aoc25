@@ -10,6 +10,7 @@ mod day04;
 mod day05;
 mod day07;
 mod day08;
+mod day09;
 mod day6a;
 mod day6b;
 
@@ -57,6 +58,10 @@ fn main() {
         8 => {
             day08::solve_problem_1("input/day08.txt").unwrap();
             day08::solve_problem_2("input/day08.txt").unwrap();
+        }
+        9 => {
+            day09::solve_problem_1("input/day09.txt").unwrap();
+            day09::solve_problem_2("input/day09.txt").unwrap();
         }
         _ => println!("Day {} not implemented yet", args.day),
     }
