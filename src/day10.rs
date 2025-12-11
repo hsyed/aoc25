@@ -1,17 +1,19 @@
-use bitvec::macros::internal::funty::Fundamental;
 use bitvec::vec::BitVec;
 use good_lp::*;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use nom::branch::alt;
-use nom::character::complete::{char, space1, u32};
-use nom::multi::{fold_many1, separated_list0, separated_list1};
-use nom::sequence::delimited;
-use nom::{IResult, Parser};
+use nom::{
+    IResult,
+    branch::alt,
+    character::complete::{char, space1, u32},
+    multi::{fold_many1, separated_list0, separated_list1},
+    sequence::delimited,
+};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::str::FromStr;
 
-// TODO refactor this!
+// unooptimized dfs implementation for problem 1
+#[allow(dead_code)]
 pub fn solve_problem_1_dfs(main_file: &str) -> std::io::Result<()> {
     let input = std::fs::read_to_string(main_file)?;
 
@@ -26,15 +28,11 @@ pub fn solve_problem_1_dfs(main_file: &str) -> std::io::Result<()> {
         .lines
         .iter()
         .map(|line| {
-            println!("Line: {:?}", line);
-            let res = line
-                .find_solutions()
+            line.find_solutions()
                 .iter()
                 .map(|s| s.len() as u32)
                 .min()
-                .unwrap_or(0);
-            println!("{:?}", res);
-            res
+                .unwrap_or(0)
         })
         .sum();
 
@@ -56,9 +54,7 @@ pub fn solve_problem_1_iterative_deepening(main_file: &str) -> std::io::Result<(
         .lines
         .iter()
         .map(|line| {
-            println!("Line: {:?}", line);
             let res = line.find_optimal_solution().len();
-            println!("{:?}", res);
             res as u32
         })
         .sum();
@@ -82,16 +78,11 @@ pub fn solve_problem_2_linear_programming(main_file: &str) -> std::io::Result<()
         .iter()
         .enumerate()
         .map(|(i, line)| {
-            println!("Line {}: target = {:?}", i + 1, line.joltage_requirements);
-            let presses = find_minimum_presses_ilp(
-                &line.joltage_requirements,
-                &line.wiring_schematics,
-            )
-            .unwrap_or_else(|| {
-                eprintln!("Warning: No solution found for line {}", i + 1);
-                0
-            });
-            presses
+            find_minimum_presses_ilp(&line.joltage_requirements, &line.wiring_schematics)
+                .unwrap_or_else(|| {
+                    eprintln!("Warning: No solution found for line {}", i + 1);
+                    0
+                })
         })
         .sum();
 
@@ -104,6 +95,7 @@ pub fn solve_problem_2_linear_programming(main_file: &str) -> std::io::Result<()
 // each level before going deeper. Especially useful when one or more exist at a shallow depth.
 
 // bfs implementation for problem 2
+#[allow(dead_code)]
 fn find_minimum_presses(target: &Vec<u32>, wiring_schematics: &[Vec<u32>]) -> Option<u32> {
     // BFS: Find shortest path from [0,0,..] to target
     let mut queue = VecDeque::new();
@@ -125,8 +117,13 @@ fn find_minimum_presses(target: &Vec<u32>, wiring_schematics: &[Vec<u32>]) -> Op
     while let Some((state, presses)) = queue.pop_front() {
         iterations += 1;
         if iterations % 100000 == 0 {
-            eprintln!("Iterations: {}, Queue size: {}, Visited: {}, Depth: {}",
-                     iterations, queue.len(), visited.len(), presses);
+            eprintln!(
+                "Iterations: {}, Queue size: {}, Visited: {}, Depth: {}",
+                iterations,
+                queue.len(),
+                visited.len(),
+                presses
+            );
         }
         // Try pressing each button
         for positions in wiring_schematics.iter() {
@@ -161,7 +158,7 @@ fn find_minimum_presses(target: &Vec<u32>, wiring_schematics: &[Vec<u32>]) -> Op
 // Integer Linear Programming approach using good_lp with microlp solver
 // Much cleaner than float-based linear algebra!
 fn find_minimum_presses_ilp(target: &[u32], wiring_schematics: &[Vec<u32>]) -> Option<u32> {
-    use good_lp::{variables, constraint, SolverModel, Solution, microlp};
+    use good_lp::{Solution, SolverModel, constraint, microlp, variables};
 
     let num_buttons = wiring_schematics.len();
 
@@ -172,7 +169,8 @@ fn find_minimum_presses_ilp(target: &[u32], wiring_schematics: &[Vec<u32>]) -> O
         .collect();
 
     // Build the problem: minimize sum of all button presses, using solver FIRST
-    let mut problem = vars.minimise(button_presses.iter().sum::<Expression>())
+    let mut problem = vars
+        .minimise(button_presses.iter().sum::<Expression>())
         .using(microlp);
 
     // Add constraints AFTER using() but BEFORE solve()
@@ -200,7 +198,8 @@ fn find_minimum_presses_ilp(target: &[u32], wiring_schematics: &[Vec<u32>]) -> O
             let mut total_presses = 0u32;
             for &var in button_presses.iter() {
                 let raw_value = solution.value(var);
-                let presses = raw_value.round() as u32;  // ROUND instead of truncate!
+                // have to round because of microlp! the other solver implementations require headers and native libraries.
+                let presses = raw_value.round() as u32; // ROUND instead of truncate!
                 total_presses += presses;
             }
 
@@ -262,11 +261,10 @@ impl FromStr for ProblemData {
         use nom::combinator::all_consuming;
 
         let parser = separated_list1(line_ending, parse_problem_line);
-        let result = all_consuming(parser)(s.trim())
-            .map(|(_, lines)| ProblemData { lines })
-            .map_err(|e| format!("Parse error: {:?}", e));
 
-        result
+        all_consuming(parser)(s.trim())
+            .map(|(_, lines)| ProblemData { lines })
+            .map_err(|e| format!("Parse error: {:?}", e))
     }
 }
 
@@ -316,13 +314,11 @@ impl ProblemLine {
             .indicator_lights
             .iter()
             .enumerate()
-            .filter_map(|(i, light_on)| {
-                if !light_on.as_bool() {
-                    Some(i as u32)
-                } else {
-                    None
-                }
-            })
+            .filter_map(
+                |(i, light_on)| {
+                    if !*light_on { Some(i as u32) } else { None }
+                },
+            )
             .collect::<HashSet<_>>();
         if positions_to_toggle.is_empty() {
             return Vec::new();
@@ -339,14 +335,12 @@ impl ProblemLine {
 
         let already_pressed: IndexSet<u32> = IndexSet::new();
 
-        let p = self.find_paths(
+        self.find_paths(
             positions_to_toggle,
             already_pressed,
             &pos_to_button_idx,
             u32::MAX,
-        );
-
-        p
+        )
     }
 
     // TODO first implement cheapest threshold termination
@@ -536,7 +530,7 @@ mod tests {
 
     #[test]
     fn test_large_entry() {
-        let mut data: ProblemData = TEST_INPUT.parse().unwrap();
+        let data: ProblemData = TEST_INPUT.parse().unwrap();
         let res = data.lines[3].find_optimal_solution();
         println!("solutions: {:?}", res);
         let res2 = data.lines[3].find_solutions();
@@ -547,8 +541,7 @@ mod tests {
     #[test]
     fn test_sample_problem_2() {
         let data: ProblemData = TEST_INPUT.parse().unwrap();
-        let res: u32 = (0..3)  // Test all 4 lines including the hard one!
-            .into_iter()
+        let res: u32 = (0..3)
             .map(|i| {
                 eprintln!("\n======= Testing line {} =======", i);
                 eprintln!("Target: {:?}", data.lines[i].joltage_requirements);

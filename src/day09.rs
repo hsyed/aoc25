@@ -52,7 +52,8 @@ impl FloorPlan {
             for j in i + 1..self.points.len() {
                 let a = &self.points[i];
                 let b = &self.points[j];
-                let area = ((a.x - b.x).abs() as u64 + 1) * ((a.y - b.y).abs() as u64 + 1);
+                let area = ((a.x - b.x).unsigned_abs() as u64 + 1)
+                    * ((a.y - b.y).unsigned_abs() as u64 + 1);
                 if area > largest_area {
                     largest_area = area;
                 }
@@ -69,7 +70,8 @@ impl FloorPlan {
             for j in i + 1..self.points.len() {
                 let a = &self.points[i];
                 let b = &self.points[j];
-                let area = ((a.x - b.x).abs() as u64 + 1) * ((a.y - b.y).abs() as u64 + 1);
+                let area = ((a.x - b.x).unsigned_abs() as u64 + 1)
+                    * ((a.y - b.y).unsigned_abs() as u64 + 1);
 
                 if area > largest_area && Self::is_rectangle_inside_polygon(a, b, polygon) {
                     largest_area = area;
@@ -263,3 +265,4 @@ mod tests {
         assert_eq!(system.find_largest_valid_rectangle(), 24);
     }
 }
+
