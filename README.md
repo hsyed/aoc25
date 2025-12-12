@@ -4,29 +4,25 @@ Solutions for Advent of Code 2025 in Rust.
 
 ## The journey
 
-I have been on a sabbatical from work for a while and I am a decade+ away from leet coding. I'm trying my first AOC 
-and I am doing it pair programming with Claude. I want to refresh my fundamentals but leetcoding is a burnout inducing 
-process of willing an algorithm into existence from scratch.
+I'm trying my first AOC and I am doing it pair programming with Claude.
 
-### My goals:
+### My goals
 
 * Refresh rust syntax and semantics.
 * See how capable language models are with DSA problems and what pair programming feels like.
-* Refresh basic problem busting strategies (DFS/BFS, DP, backtracking, etc) without the performative leetcoding/interview pressure.
+* Refresh basic problem busting strategies (DFS/BFS, DP, backtracking, etc).
 * Explore multiple approaches to problems and see how they compare in terms of readability, performance, and ease of implementation.
 
-### My process:
+### My process
 
 1. Get the agent to stub out the day.
-2. Attempt the problem by hand. 
+2. Attempt the problem by hand.
 3. Get alternatives when stuck or to explore different approaches.
 4. Let the agent implement the other approaches.
 5. Understand, refactor or document as needed (the ascii art for day9 from the model = :fire:).
 
-On the hardest problems --e.g., day10, day9. I spent 5+ hours before letting the agent carry me.
-
-Day 12 is NP hard so I'm leaving it to Claude. It produced a working solution which we then optimised, I manually added 
-rayon to parallelize. 35x improvement over initial working version -> ~4 seconds on my i9900k.
+Day 12 is NP hard, so I left it to Claude. It produced a working solution which we then optimised, I manually added
+rayon to parallelize. 35x improvement over initial working version, ~4 seconds on my i9900k.
 
 ### Stuff re-learned
 
@@ -35,15 +31,10 @@ rayon to parallelize. 35x improvement over initial working version -> ~4 seconds
 * Intuition for selecting between DFS and BFS.
 * Linear programming! I haven't worked with a linear equation solver in code before, just Excel.
 * Ray casting to determine inside or outside rectilinear polygon bounds.
+* Parser combinator lib: nom.
 
 ## Usage
 
 ```bash
-cargo run -- --day <day_number>
+cargo run --release -- --day <day_number>
 ```
-
-## Structure
-
-- `src/day*.rs` - Daily solutions
-- `input/day*.txt` - Puzzle inputs
-
