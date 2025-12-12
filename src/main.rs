@@ -12,6 +12,7 @@ mod day07;
 mod day08;
 mod day09;
 mod day10;
+mod day11;
 mod day6a;
 mod day6b;
 
@@ -67,6 +68,10 @@ fn main() {
         10 => {
             day10::solve_problem_1_iterative_deepening("input/day10.txt").unwrap();
             day10::solve_problem_2_linear_programming("input/day10.txt").unwrap();
+        }
+        11 => {
+            day11::solve_problem_1("input/day11.txt").unwrap();
+            day11::solve_problem_2("input/day11.txt").unwrap();
         }
         _ => println!("Day {} not implemented yet", args.day),
     }
