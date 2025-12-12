@@ -24,7 +24,7 @@ I'm trying my first AOC and I am doing it pair programming with Claude.
 Day 12 is NP hard, so I left it to Claude. It produced a working solution which we then optimised, I manually added
 rayon to parallelize. 35x improvement over initial working version, ~4 seconds on my i9900k.
 
-### Stuff re-learned
+### Stuff  I've learned or re-learned along the way
 
 * Euclidean division in Rust a = qb + r (for normalising arithmetic done with wrap around).
 * What dynamic programming was -- I remembered it memoizes sub-computations structurally, I had just forgotten how.
@@ -32,6 +32,8 @@ rayon to parallelize. 35x improvement over initial working version, ~4 seconds o
 * Linear programming! I haven't worked with a linear equation solver in code before, just Excel.
 * Ray casting to determine inside or outside rectilinear polygon bounds.
 * Parser combinator lib: nom.
+* Implemented [union find](https://yuminlee2.medium.com/union-find-algorithm-ffa9cd7d2dba) in terms of `Rc<HashSet>` for 
+connected components.
 
 ## Usage
 

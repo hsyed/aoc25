@@ -13,7 +13,7 @@ use indexmap::IndexMap;
 pub fn solve_problem_1(main_file: &str) -> std::io::Result<()> {
     let input = std::fs::read_to_string(main_file)?;
 
-    let mut system: LighteningSystem = input.parse().map_err(|e| {
+    let mut system: LightingSystem = input.parse().map_err(|e| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             format!("Parse error: {}", e),
@@ -36,7 +36,7 @@ pub fn solve_problem_1(main_file: &str) -> std::io::Result<()> {
 pub fn solve_problem_2(main_file: &str) -> std::io::Result<()> {
     let input = std::fs::read_to_string(main_file)?;
 
-    let mut system: LighteningSystem = input.parse().map_err(|e| {
+    let mut system: LightingSystem = input.parse().map_err(|e| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             format!("Parse error: {}", e),
@@ -71,11 +71,21 @@ impl Point3D {
     }
 }
 
-struct LighteningSystem {
+/// Union-Find data structure for tracking connected components of 3D points.
+///
+/// This is an unconventional union-find implementation where:
+/// - The "find" operation is implicit: `circuits.get(point)` returns the Rc pointer to the set
+/// - Set identity is determined by Rc pointer equality (via `Rc::ptr_eq`), not a leader node
+/// - All points in the same set share the same Rc<RefCell<HashSet>> through cloned Rc pointers
+/// - Union operation updates all points in the merged set to point to the same Rc
+///
+/// Traditional union-find uses parent pointers and path compression. This uses shared ownership
+/// through Rc, which makes "find" O(1) but "union" O(smaller_set_size) due to pointer updates.
+struct LightingSystem {
     circuits: IndexMap<Point3D, Rc<RefCell<HashSet<Point3D>>>>,
 }
 
-impl FromStr for LighteningSystem {
+impl FromStr for LightingSystem {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -106,11 +116,11 @@ impl FromStr for LighteningSystem {
         for point in points {
             circuits.insert(point, Rc::new(RefCell::new(HashSet::from([point]))));
         }
-        Ok(LighteningSystem { circuits })
+        Ok(LightingSystem { circuits })
     }
 }
 
-impl LighteningSystem {
+impl LightingSystem {
     fn unique_circuits(&self) -> impl Iterator<Item = Rc<RefCell<HashSet<Point3D>>>> + '_ {
         let mut seen = HashSet::new();
         self.circuits
@@ -119,10 +129,21 @@ impl LighteningSystem {
             .cloned()
     }
 
-    fn merge_circuits(&mut self, point_a: Point3D, point_b: Point3D) -> bool {
-        let set_a_rc = self.circuits.get(&point_a).unwrap().clone();
-        let set_b_rc = self.circuits.get(&point_b).unwrap().clone();
+    
+    /// Union-Find "union" operation: merges two disjoint sets into one.
+    ///
+    /// This implements union-by-size heuristic for efficiency - the smaller set is merged
+    /// into the larger one. Each point maintains an Rc pointer to its set, so when we merge,
+    /// we update all points in the smaller set to point to the larger set's shared HashSet.
+    ///
+    /// Returns true if a merge happened, false if the points were already in the same circuit.
+    fn merge_circuits(&mut self, point_a: &Point3D, point_b: &Point3D) -> bool {
+        // Union-Find "find" operation (implicit): get the Rc pointer representing each set.
+        // The pointer identity IS the set identity - no path compression needed.
+        let set_a_rc = self.circuits.get(point_a).unwrap().clone();
+        let set_b_rc = self.circuits.get(point_b).unwrap().clone();
 
+        // Check if already in same set by comparing Rc pointer addresses
         if Rc::ptr_eq(&set_a_rc, &set_b_rc) {
             return false; // Already in the same set - no merge happened
         }
@@ -143,23 +164,12 @@ impl LighteningSystem {
             }
         }
 
-        true // Merge happened
+        true
     }
 
     fn connect_junctions_n(&mut self, wire_count: u32) -> u32 {
-        // Pre-compute all pairs with distances
         let points: Vec<Point3D> = self.circuits.keys().copied().collect();
-        let mut pairs: Vec<(Point3D, Point3D, u64)> = Vec::new();
-
-        for i in 0..points.len() {
-            for j in i + 1..points.len() {
-                let dist_sq = points[i].distance_squared(&points[j]);
-                pairs.push((points[i], points[j], dist_sq));
-            }
-        }
-
-        // Sort by distance
-        pairs.sort_by_key(|(_, _, dist)| *dist);
+        let pairs = Self::sorted_pairs(&points);
 
         // Process first wire_count pairs (some may be no-ops if already connected)
         let mut n = 0;
@@ -167,17 +177,15 @@ impl LighteningSystem {
             .iter()
             .take(wire_count as usize)
             .for_each(|(a, b, _dist)| {
-                let _ = self.merge_circuits(*a, *b);
+                let _ = self.merge_circuits(a, b);
                 n += 1;
             });
         n
     }
 
-    fn connect_into_single_circuit(&mut self) -> Option<(Point3D, Point3D)> {
-        // Pre-compute all pairs with distances
-        let points: Vec<Point3D> = self.circuits.keys().copied().collect();
+    // Pre-compute all pairs with distances
+    fn sorted_pairs(points: &Vec<Point3D>) -> Vec<(Point3D, Point3D, u64)> {
         let mut pairs: Vec<(Point3D, Point3D, u64)> = Vec::new();
-        let num_points = points.len();
 
         for i in 0..points.len() {
             for j in i + 1..points.len() {
@@ -189,9 +197,18 @@ impl LighteningSystem {
         // Sort by distance
         pairs.sort_by_key(|(_, _, dist)| *dist);
 
+        pairs
+    }
+
+    fn connect_into_single_circuit(&mut self) -> Option<(Point3D, Point3D)> {
+        // Pre-compute all pairs with distances
+        let points: Vec<Point3D> = self.circuits.keys().copied().collect();
+        let pairs: Vec<(Point3D, Point3D, u64)> = Self::sorted_pairs(&points);
+        let num_points = points.len();
+
         let mut merge_count = 0;
         for (a, b, _) in pairs.iter() {
-            if self.merge_circuits(*a, *b) {
+            if self.merge_circuits(a, b) {
                 merge_count += 1;
                 if merge_count == num_points - 1 {
                     return Some((*a, *b));
@@ -231,7 +248,7 @@ mod tests {
 
     #[test]
     fn test_sample_problem_1() {
-        let mut system: LighteningSystem = TEST_INPUT.parse().unwrap();
+        let mut system: LightingSystem = TEST_INPUT.parse().unwrap();
         let connections_made = system.connect_junctions_n(10);
         assert_eq!(connections_made, 10);
 
@@ -253,7 +270,7 @@ mod tests {
 
     #[test]
     fn test_sample_problem_2() {
-        let mut system: LighteningSystem = TEST_INPUT.parse().unwrap();
+        let mut system: LightingSystem = TEST_INPUT.parse().unwrap();
 
         if let Some((a, b)) = system.connect_into_single_circuit() {
             let result = a.x * b.x;
