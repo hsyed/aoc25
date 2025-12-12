@@ -25,13 +25,16 @@ process of willing an algorithm into existence from scratch.
 
 On the hardest problems --e.g., day10, day9. I spent 5+ hours before letting the agent carry me.
 
+Day 12 is NP hard so I'm leaving it to Claude. It produced a working solution which we then optimised, I manually added 
+rayon to parallelize. 35x improvement over initial working version -> ~4 seconds on my i9900k.
+
 ### Stuff re-learned
 
 * Euclidean division in Rust a = qb + r (for normalising arithmetic done with wrap around).
 * What dynamic programming was -- I remembered it memoizes sub-computations structurally, I had just forgotten how.
 * Intuition for selecting between DFS and BFS.
-* Linear programming! I have done this before but in Excel.
-* Ray casting to determine inside or outside of rectilinear polygon bounds.
+* Linear programming! I haven't worked with a linear equation solver in code before, just Excel.
+* Ray casting to determine inside or outside rectilinear polygon bounds.
 
 ## Usage
 
